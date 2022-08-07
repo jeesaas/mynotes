@@ -1,7 +1,5 @@
 ## OpenGauss数据库单节点安装
 
-
-
 ### 1.更新yum源为华为云源
 ```shell
 [root@localhost ~]# cp -a /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
@@ -186,8 +184,6 @@
 [root@opengauss-201 ~]# echo "CentOS Linux release 7.6.1810 (Core)">/etc/centos-release
 ```
 
-
-
 ### 6.OpenGauss安装
 
 #### 6.1 下载OpenGauss安装包
@@ -335,6 +331,26 @@ end deploy..
 
 	-----------------------------------------------------------------------
 ```
+#### 6.9 单节点集群启停
+
+```sql
+## 单节点集群停止
+[omm@opengauss-201 ~]$ gs_om -t stop
+	Stopping cluster.
+	=========================================
+	Successfully stopped cluster.
+	=========================================
+	End stop cluster.
+
+## 单节点集群启动
+[omm@opengauss-201 ~]$ gs_om -t start
+	Starting cluster.
+	=========================================
+	[SUCCESS] opengauss-201
+	for g_instance.attr.attr_storage.cstore_buffers (1024 Mbytes) or shared memory (4456 Mbytes) is larger.
+	=========================================
+	Successfully started.
+```
 
 ### 7.数据库操作
 
@@ -424,28 +440,7 @@ testdb=# \q
 [omm@opengauss-201 ~]$ 
 ```
 
-#### 7.6 单节点集群启停
-
-```sql
-## 单节点集群停止
-[omm@opengauss-201 ~]$ gs_om -t stop
-	Stopping cluster.
-	=========================================
-	Successfully stopped cluster.
-	=========================================
-	End stop cluster.
-
-## 单节点集群启动
-[omm@opengauss-201 ~]$ gs_om -t start
-	Starting cluster.
-	=========================================
-	[SUCCESS] opengauss-201
-	for g_instance.attr.attr_storage.cstore_buffers (1024 Mbytes) or shared memory (4456 Mbytes) is larger.
-	=========================================
-	Successfully started.
-```
-
-#### 7.7 数据库软件卸载
+#### 7.6 数据库软件卸载
 
 ```shell
 [root@opengauss-201 ~]# /opt/software/openGauss/script/gs_uninstall --delete-date -L 
@@ -455,9 +450,9 @@ testdb=# \q
 
 ### 8 远程访问
 
-安装PostgreSQL数据库之后，默认是只接受本地访问连接。如果想在其他主机上访问PostgreSQL数据库服务器，就需要进行相应的配置。
+安装OpenGauss数据库之后，默认是只接受本地访问连接。如果想在其他主机上访问OpenGauss数据库服务器，就需要进行相应的配置。
 
-配置远程连接PostgreSQL数据库的步骤很简单，只需要修改data目录下的pg_hba.conf和postgresql.conf配置文件。
+配置远程连接OpenGauss数据库的步骤很简单，只需要修改data目录下的pg_hba.conf和postgresql.conf配置文件。
 
 - pg_hba.conf：配置对数据库的访问权限；
 
@@ -502,32 +497,26 @@ testdb=# \q
 ## 超级管理员登录
 [omm@opengauss-201 ~]$ gsql -d postgres -p 15400
 
-## 新增用户
-openGauss=# create user malo with password "Gauss@123"; 
-
-## 用户授权
-openGauss=# ALTER ROLE malo CREATEROLE CREATEDB;
-
-## 切换用户
-openGauss=# \c - malo
-
 ## 创建数据库
 openGauss=> CREATE DATABASE malodb WITH ENCODING 'UTF-8' template = template0;
 
 ## 切换数据库
 openGauss=# \c malodb
 
-## 创建schema
-testdb=# create schema malo_auth;
-
-## 将malodb数据库授权给malo用户
-testdb=# grant all privileges on database malodb to malo;
+## 新增用户(用户跟Schema关系我们后续章节再专门介绍)
+malodb=# create user malo_auth with password "Gauss@123"; 
 
 ## 将malodb数据库下malo_auth schema 的表都授权于 malo
-testdb=# grant all privileges on all tables in schema malo_auth to malo;
+malodb=# grant all privileges on all tables in schema malo_auth to malo_auth;
+
+## 将malodb数据库授权给malo用户
+malodb=# grant all privileges on database malodb to malo_auth;
+
+## 解决部分客户端(JetBrains DataGrid报错)
+malodb=# GRANT ALL PRIVILEGES ON pg_user TO malo_auth; 
 
 ## 退出
-testdb=# \q
+malodb=# \q
 
 ## 新用户登录数据库
 [omm@opengauss-201 ~]$ gsql -U malo -p 15400 -d testdb
